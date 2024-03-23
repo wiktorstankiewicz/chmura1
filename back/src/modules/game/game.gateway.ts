@@ -15,7 +15,7 @@ import GameService from './game.service';
 import CreateGameDto from './dto/create-game.dto';
 import MakeMoveDto from './dto/make-move.dto';
 
-@WebSocketGateway(80,{ transports: ['websocket'], cors: true})
+@WebSocketGateway({ transports: ['websocket'], cors: true})
 @Injectable()
 export default class GameGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit

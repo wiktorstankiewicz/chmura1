@@ -11,7 +11,7 @@ export default defineConfig({
     cors: true,
     proxy: {
       '/ws/': {
-        target: 'http://back:80/socket.io/',
+        target: 'http://back:3000/socket.io/',
         ws: true,
         changeOrigin: true,
         secure: false
