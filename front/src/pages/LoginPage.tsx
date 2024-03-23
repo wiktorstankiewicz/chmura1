@@ -1,4 +1,3 @@
-import React from 'react'
 import UsernameInput from '../components/UsernameInput'
 import { useNavigate } from 'react-router-dom'
 import { useUserStore } from '../stores/user-store';

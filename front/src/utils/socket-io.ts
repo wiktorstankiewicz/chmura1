@@ -1,10 +1,12 @@
 import { io } from "socket.io-client";
 
-export const socket = io("/socket.io", {
+export const socket = io( "http://localhost:5000",{
+    path: "/ws",
     autoConnect: false,
+    transports: ["websocket"],
 });
 
-const createSocket = (userId: string) => {
+export const createSocket = (userId: string) => {
     socket.auth = { userId };
-    socket.connect();
+    return socket;
 }

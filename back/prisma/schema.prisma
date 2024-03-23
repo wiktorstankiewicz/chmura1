@@ -9,39 +9,26 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model Game {
   id             String     @id @default(uuid())
   player1        String
   player2        String
-  player1Figure  Figure     @default(X)
-  player2Figure  Figure     @default(O)
-  startingFigure Figure?    @default(X)
-  square1        Figure     @default(NONE)
-  square2        Figure     @default(NONE)
-  square3        Figure     @default(NONE)
-  square4        Figure     @default(NONE)
-  square5        Figure     @default(NONE)
-  square6        Figure     @default(NONE)
-  square7        Figure     @default(NONE)
-  square8        Figure     @default(NONE)
-  square9        Figure     @default(NONE)
-  status         GameStatus @default(PENDING)
+  player1Figure  String     @default("X")
+  player2Figure  String     @default("O")
+  startingFigure String?    @default("X")
+  square1        String     @default("NONE")
+  square2        String     @default("NONE")
+  square3        String     @default("NONE")
+  square4        String     @default("NONE")
+  square5        String     @default("NONE")
+  square6        String     @default("NONE")
+  square7        String     @default("NONE")
+  square8        String     @default("NONE")
+  square9        String     @default("NONE")
+  status         String @default("PENDING")
 }
 
-enum Figure {
-  X
-  O
-  NONE
-}
-
-enum GameStatus {
-  PLAYER_1_WON
-  PLAYER_2_WON
-  DRAW
-  PENDING
-  IN_PROGRESS
-}

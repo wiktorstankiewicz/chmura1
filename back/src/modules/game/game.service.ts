@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Game, GameStatus } from '@prisma/client';
+import { Game } from '@prisma/client';
 import GameRepository from './game.repository';
 import CreateGameDto from './dto/create-game.dto';
+import { GameStatus } from 'src/enums/enums';
 @Injectable()
 export default class GameService {
   constructor(private gameRepository: GameRepository) {}
@@ -54,7 +55,8 @@ export default class GameService {
       throw new BadRequestException('Invalid square');
     }
     const squareKey = `square${square}`;
-    if (game[squareKey] !== null) {
+    if (game[squareKey] !== 'NONE') {
+      console.log(game[squareKey])
       throw new BadRequestException('Square is already taken');
     }
     game[squareKey] = isPlayer1 ? game.player1Figure : game.player2Figure;
@@ -197,15 +199,15 @@ export default class GameService {
     }
 
     if (
-      square1 &&
-      square2 &&
-      square3 &&
-      square4 &&
-      square5 &&
-      square6 &&
-      square7 &&
-      square8 &&
-      square9
+      square1  != "NONE" &&
+      square2  != "NONE" &&
+      square3  != "NONE" &&
+      square4  != "NONE" &&
+      square5  != "NONE" &&
+      square6  != "NONE" &&
+      square7  != "NONE" &&
+      square8  != "NONE" &&
+      square9 != "NONE" 
     ) {
       return 'draw';
     }

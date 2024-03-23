@@ -1,6 +1,7 @@
-import { Game, GameStatus, PrismaClient } from '@prisma/client';
+import { Game, PrismaClient } from '@prisma/client';
 import CreateGameDto from './dto/create-game.dto';
 import { Injectable } from '@nestjs/common';
+import { GameStatus } from 'src/enums/enums';
 @Injectable()
 export default class GameRepository {
   private prisma: PrismaClient;
