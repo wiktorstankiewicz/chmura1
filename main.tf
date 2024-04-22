@@ -11,6 +11,13 @@ resource "aws_vpc" "app_vpc" {
   }
 }
 
+resource "aws_internet_gateway" "app_gw" {
+  vpc_id = aws_vpc.app_vpc.id
+  tags = {
+    Name = "app_gw"
+  }
+}
+
 resource "aws_subnet" "app_subnet" {
   vpc_id = aws_vpc.app_vpc.id
   cidr_block = "10.0.1.0/24"
@@ -20,30 +27,23 @@ resource "aws_subnet" "app_subnet" {
   }
 }
 
-resource "aws_internet_gateway" "app_gateway" {
-  vpc_id = aws_vpc.app_vpc.id
-  tags = {
-    Name = "app_gateway"
-  }
-}
-
-resource "aws_route_table" "app_route_table" {
+resource "aws_route_table" "app_rt" {
   vpc_id = aws_vpc.app_vpc.id
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.app_gateway.id
+    gateway_id = aws_internet_gateway.app_gw.id
   }
   tags = {
-    Name = "app_route_table"
+    Name = "app_rt"
   }
 }
 
-resource "aws_route_table_association" "a" {
+resource "aws_route_table_association" "app_rta" {
   subnet_id = aws_subnet.app_subnet.id
-  route_table_id = aws_route_table.app_route_table.id
+  route_table_id = aws_route_table.app_rt.id
 }
 
-resource "aws_security_group" "app_sg" {
+resource "aws_security_group" "app_sg" { //DROGI STUDENCIE IST: zmien porty na odpowiednie do twojej aplikacji
   name = "app_sg"
   description = "Allow web and db traffic" 
   vpc_id = aws_vpc.app_vpc.id
@@ -67,7 +67,7 @@ resource "aws_security_group" "app_sg" {
     to_port     = 5000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"] 
-  }
+  } 
 
   egress {
     from_port = 0
@@ -81,19 +81,95 @@ resource "aws_security_group" "app_sg" {
   }
 }
 
-resource "aws_instance" "app_instance" {
-  ami = "ami-0a44aefa5a8df82eb" 
-  instance_type = "t2.small" 
-  subnet_id = aws_subnet.app_subnet.id
-  security_groups = [aws_security_group.app_sg.id]
-  key_name = "deployer-key" # Replace with your SSH key pair name if you plan to SSH into your instance
-  associate_public_ip_address = true
-  tags = {
-    Name = "app_instance"
+resource "aws_elastic_beanstalk_application" "app_eba" {
+  name        = "app_eba"
+  description = "Chmura app"
+}
+
+resource "aws_elastic_beanstalk_environment" "app_ebe" {
+  name                = "appebeenv"
+  application         = aws_elastic_beanstalk_application.app_eba.name
+  solution_stack_name = "64bit Amazon Linux 2 v3.3.0 running ECS"
+  version_label = aws_elastic_beanstalk_application_version.app_v.name
+  cname_prefix = "wwiktor-chmura"
+   setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name      = "IamInstanceProfile"
+    value     = "LabInstanceProfile"
+    resource  = ""
+  }
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "VPCId"
+    value     = aws_vpc.app_vpc.id
+  }
+
+  setting {
+    namespace = "aws:ec2:vpc"
+    name      = "Subnets"
+    value     = aws_subnet.app_subnet.id
+  }
+
+  /* setting {
+    namespace = "aws:elasticbeanstalk:environment:proxy"
+    name      = "ProxyServer"
+    value     = "nginx"
+  } */
+
+  setting { # public ip address allows to connect
+    namespace = "aws:ec2:vpc"
+    name = "AssociatePublicIpAddress"
+    value = "true"
+  }
+  setting { # single EC2 instance to save costs for tests, load balanced when application ready for production
+    namespace = "aws:elasticbeanstalk:environment"
+    name = "EnvironmentType"
+    value = "SingleInstance"
+  }
+  setting { # AWS service role
+    namespace = "aws:elasticbeanstalk:environment"
+    name = "ServiceRole"
+    value = "arn:aws:iam::975202093101:role/LabRole" //Drogi studencie IST: zmien ten smieszny numerek na twoj ID konta na aws
+  }
+
+  setting { # supported architectures
+    namespace = "aws:ec2:instances"
+    name = "SupportedArchitectures"
+    value = "x86_64"
+  }
+
+  setting { # EC2 instance type
+    namespace = "aws:autoscaling:launchconfiguration"
+    name = "InstanceType"
+    value = "t2.small"
+  }
+
+  setting {
+    namespace = "aws:autoscaling:launchconfiguration"
+    name = "SecurityGroups"
+    value = aws_security_group.app_sg.id
   }
 }
 
-resource "aws_key_pair" "my_key_pair" {
-  key_name   = "deployer-key"
-  public_key = file("~/.ssh/chmura.pub")
+resource "aws_elastic_beanstalk_application_version" "app_v" {
+  name        = "app_v1"
+  application = aws_elastic_beanstalk_application.app_eba.name
+  description = "application version created by terraform"
+  bucket      = aws_s3_bucket.app_bucket.bucket
+  key         = aws_s3_object.app_s3o.key
+}
+
+resource "aws_s3_bucket" "app_bucket" { # name must be unique and must contain only allowed characters (not _)
+  bucket = "appbucketwwiktor"
+}
+resource "aws_s3_object" "app_s3o" {
+   bucket = aws_s3_bucket.app_bucket.bucket
+   key = "deploy.zip"
+   source = "deploy.zip"
+}
+
+
+output "elastic_beanstalk_app_url" {
+  value = "http://${aws_elastic_beanstalk_environment.app_ebe.cname}:5000" //DROGI STUDENCIE IST: zmien port na odpowiedni do twojego
 }
