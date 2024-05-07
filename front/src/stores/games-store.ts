@@ -2,6 +2,7 @@ import { Socket } from "socket.io-client";
 import { createSocket } from "../utils/socket-io";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { User } from "./user-store";
 
 export interface CreateGameDto {
   playerId: string;
@@ -16,7 +17,7 @@ export interface GameStore {
   pendingGames: Game[];
   inProgressGames: Game[];
 
-  connect: (userId: string) => void;
+  connect: (user: User) => void;
   disconnect: () => void;
   createGame: (dto: CreateGameDto) => void;
   acceptGame: (gameId: string) => void;
@@ -63,15 +64,15 @@ export const useGamesStore = create<GameStore>()(
     (set, get) => ({
       pendingGames: [],
       inProgressGames: [],
-      connect: (userId: string) => {
-        const _socket = createSocket(userId);
+      connect: (user: User) => {
+        const _socket = createSocket(user);
         socket = _socket;
-        socket.connect();
+        _socket.connect();
         _socket.on("connect", () => {
           _socket.emit("getAllGames", (games: Game[]) => {
             console.log("emit getAllGames", games);
             const pendingGames = games.filter(
-              (g) => g.status === GameStatus.PENDING && g.player2 === userId
+              (g) => g.status === GameStatus.PENDING && g.player2 === user.email
             );
             const inProgressGames = games.filter(
               (g) => g.status === GameStatus.IN_PROGRESS

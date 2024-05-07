@@ -1,4 +1,5 @@
 import { io } from "socket.io-client";
+import { User } from "../stores/user-store";
 
 export const socket = io( "",{
     path: "/ws",
@@ -6,7 +7,7 @@ export const socket = io( "",{
     transports: ["websocket"],
 });
 
-export const createSocket = (userId: string) => {
-    socket.auth = { userId };
+export const createSocket = (user: User) => {
+    socket.auth = { accessToken: user.accessToken };
     return socket;
 }
