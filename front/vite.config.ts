@@ -25,7 +25,7 @@ export default defineConfig({
     cors: true,
     proxy: {
       '/ws/': {
-        target: 'http://localhost:3000/socket.io/',
+        target: 'http://127.0.0.1:3000/socket.io/',
         ws: true,
         changeOrigin: true,
         secure: false
