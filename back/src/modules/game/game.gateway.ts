@@ -14,15 +14,37 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import GameService from './game.service';
 import CreateGameDto from './dto/create-game.dto';
 import MakeMoveDto from './dto/make-move.dto';
+import AuthService from '../auth/auth.service';
+import { After } from 'v8';
+import { CognitoIdentityServiceProvider } from 'aws-sdk';
 
 @WebSocketGateway({ transports: ['websocket'], cors: true})
 @Injectable()
 export default class GameGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {
-  constructor(private readonly gameService: GameService) {}
+  constructor(private readonly gameService: GameService, private readonly authService: AuthService) {}
+
+  async afterInit(server: Server) {
+    this.games = await this.gameService.getGames();
+    server.use(async (socket, next) => {
+      const accessToken = socket.handshake.query.accessToken;
+      if (!accessToken) {
+        return next(new Error('Unauthorized'));
+      }
+      const user = await this.authService.userFromJwt(accessToken as string);
+      if (!user) {
+        return next(new Error('Unauthorized'));
+      }
+      socket.handshake.auth = user;
+      socket.handshake.auth.userId = user.UserAttributes.find((attr) => attr.Name === 'email').Value;
+      next();
+    });
+    console.log(this.games);
+  }
+
   handleConnection(client: any, ...args: any[]) {
-    const userId = client.handshake.auth.userId;
+    const userId = client.handshake.auth.userId as string;
     for (const game of this.games) {
       if (game.player1 === userId || game.player2 === userId) {
         client.join(game.id);
@@ -39,10 +61,7 @@ export default class GameGateway
     this.connectedClients = this.connectedClients.filter((id) => id !== userId);
     console.log('disconnected', userId);
   }
-  async afterInit(server: any) {
-    this.games = await this.gameService.getGames();
-    console.log(this.games);
-  }
+  
   games: Game[] = [];
   connectedClients: string[] = [];
 
